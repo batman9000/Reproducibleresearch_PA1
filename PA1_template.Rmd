@@ -1,0 +1,75 @@
+---
+title: "PA1_template.html"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, warning=FALSE}
+library(tidyverse)
+library(lubridate)
+data<-read.csv("activity.csv")
+summary(data)
+
+```
+
+```{r}
+##Calculate the total number of steps taken per day
+steps_sum<-data%>% group_by(date)%>% summarise(total_steps=sum(steps, na.rm=TRUE))
+## Make a histogram of the total number of steps taken each day
+hist(steps_sum$total_steps)
+
+##Calculate and report the mean and median of the total number of steps taken per day
+steps_sum %>% summarise(mean_steps=mean(total_steps, na.rm=TRUE), median_steps=median(total_steps, na.rm=TRUE))
+
+```
+
+
+
+```{r}
+##Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
+steps_int<-data%>% group_by(interval)%>% summarise(steps=mean(steps, na.rm=TRUE))
+plot(steps_int$interval, steps_int$steps, type="l")
+
+##Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+steps_int$interval[steps_int$steps==max(steps_int$steps)]
+
+```
+
+
+
+```{r}
+##Calculate and report the total number of missing values in the dataset
+sum(is.na(data$steps))
+
+## Fill missing data with the mean for that 5-minute interval, etc.
+##Create a new dataset that is equal to the original dataset but with the missing data filled in.
+data2<-merge(data, steps_int, by="interval")
+data2[is.na(data2$steps.x), "steps.x"]<-data2[is.na(data2$steps.x), "steps.y"]
+data2<-data2[,1:3]
+colnames(data2)<-c("interval", "steps", "date")
+
+##Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. 
+steps_sum2<-data2%>% group_by(date)%>% summarise(total_steps=sum(steps, na.rm=TRUE))
+hist(steps_sum2$total_steps)
+steps_sum2 %>% summarise(mean_steps=mean(total_steps, na.rm=TRUE), median_steps=median(total_steps, na.rm=TRUE))
+
+```
+
+
+```{r}
+data2$daytype<-factor(ifelse(wday(ymd(data2$date)) %in% c(1,7), 2, 1), labels=c("weekday", "weekend"))
+
+steps_int2<-data2 %>% group_by(interval, daytype)%>% summarise(steps=mean(steps, na.rm=TRUE))
+
+
+par(mfrow = c(1,2))
+with(steps_int2%>% filter(daytype=="weekday"), plot(interval, steps, type="l"))
+with(steps_int2%>% filter(daytype=="weekend"), plot(interval, steps, type="l"))
+
+
+```
